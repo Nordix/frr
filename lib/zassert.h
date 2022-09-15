@@ -40,11 +40,13 @@ extern void _zlog_assert_failed(const char *assertion, const char *file,
 						__ASSERT_FUNCTION),            \
 			    0)))
 
-#undef assert
-#define assert(EX) zassert(EX)
 
 #ifdef __cplusplus
 }
 #endif
 
 #endif /* _QUAGGA_ASSERT_H */
+
+/* Cradlepoint - Moved out of ifdef to always ensure assert in FRR is zassert */
+#undef assert
+#define assert(EX) zassert(EX)

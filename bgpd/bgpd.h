@@ -134,6 +134,9 @@ struct bgp_master {
 	/* Listener address */
 	char *address;
 
+	/* CP client */
+	char *csclient;
+
 	/* The Mac table */
 	struct hash *self_mac_hash;
 

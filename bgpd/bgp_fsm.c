@@ -1152,6 +1152,40 @@ static int bgp_clearing_completed(struct peer *peer)
 	return rc;
 }
 
+/* Cradlepoint */
+static void csclient(char *host, char *status, int value)
+{
+  char *cmd;
+  size_t cmdlen;
+  char *cmdfmt="csclient -m put -b '%s/peer_%s' -v '{\"state\":\"%s\",\"value\":%d}'";
+  /*zlog_info(cmdfmt, bm->csclient ? bm->csclient : "NA", host, status, value); */
+  if (!bm->csclient)
+    return;
+  /* fork and exec ??? */
+  /* static or stack cmd buffer ??? */
+  cmdlen = strlen(cmdfmt) + strlen(bm->csclient) + strlen(host) + strlen(status) + 12;
+  cmd = malloc(cmdlen);
+  if (!cmd || cmdlen <= snprintf(cmd, cmdlen, cmdfmt, bm->csclient, host, status, value))
+  {
+    zlog_debug("%s csclient malloc failure %d => 0x%08x", host, cmdlen, (unsigned)cmd);
+    if (cmd) free(cmd);
+    return;
+  }
+  /* map all '.' in path to '_' */
+  cmdfmt = cmd;
+  while (*cmdfmt)
+  {
+    if (cmdfmt[0] == ' ' && cmdfmt[1] == '-' && cmdfmt[2] == 'v')
+      break;
+    if (*cmdfmt == '.')
+      *cmdfmt = '_';
+    cmdfmt++;
+  }
+  system(cmd);
+  free(cmd);
+}
+/* End Cradlepoint */
+
 /* Administrative BGP peer stop event. */
 /* May be called multiple times for the same peer */
 int bgp_stop(struct peer *peer)
@@ -1187,6 +1221,9 @@ int bgp_stop(struct peer *peer)
 	if (peer->status == Established) {
 		peer->dropped++;
 
+/* Cradlepoint */
+		csclient(peer->host, "down", (int)peer->last_reset);
+/* End Cradlepoint */
 		/* bgp log-neighbor-changes of neighbor Down */
 		if (CHECK_FLAG(peer->bgp->flags,
 			       BGP_FLAG_LOG_NEIGHBOR_CHANGES)) {
@@ -1813,6 +1850,9 @@ static int bgp_establish(struct peer *peer)
 	peer->established++;
 	bgp_fsm_change_status(peer, Established);
 
+/* Cradlepoint */
+	csclient(peer->host, "up", 0);
+/* End Cradlepoint */
 	/* bgp log-neighbor-changes of neighbor Up */
 	if (CHECK_FLAG(peer->bgp->flags, BGP_FLAG_LOG_NEIGHBOR_CHANGES)) {
 		struct vrf *vrf = vrf_lookup_by_id(peer->bgp->vrf_id);

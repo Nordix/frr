@@ -382,10 +382,13 @@ static int netlink_information_fetch(struct nlmsghdr *h, ns_id_t ns_id,
 		 * this message type or not ask for
 		 * it to be sent up to us
 		 */
-		flog_err(EC_ZEBRA_UNKNOWN_NLMSG,
-			 "Unknown netlink nlmsg_type %s(%d) vrf %u\n",
-			 nl_msg_type_to_str(h->nlmsg_type), h->nlmsg_type,
-			 ns_id);
+		// Cradlepoint: suppress error messages, since we are not
+		// interested in unknown type of netlink messages anyway.
+		//
+		//flog_err(ZEBRA_ERR_UNKNOWN_NLMSG,
+		//	  "Unknown netlink nlmsg_type %s(%d) vrf %u\n",
+		//	  nl_msg_type_to_str(h->nlmsg_type), h->nlmsg_type,
+		//	  ns_id);
 		break;
 	}
 	return 0;

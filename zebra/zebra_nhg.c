@@ -1945,14 +1945,16 @@ static int nexthop_active(afi_t afi, struct route_entry *re,
 		 * host route.
 		 */
 		if (rn == top)
-			if (((afi == AFI_IP) && (rn->p.prefixlen != 32))
-			    || ((afi == AFI_IP6) && (rn->p.prefixlen != 128))) {
-				if (IS_ZEBRA_DEBUG_RIB_DETAILED)
-					zlog_debug(
-						"        %s: Matched against ourself and prefix length is not max bit length",
-						__func__);
+// Cradlepoint: FW-20626
+// This condition did not exist in quagga, and breaks route selection.
+//			if (((afi == AFI_IP) && (rn->p.prefixlen != 32))
+//			    || ((afi == AFI_IP6) && (rn->p.prefixlen != 128))) {
+//				if (IS_ZEBRA_DEBUG_RIB_DETAILED)
+//					zlog_debug(
+//						"        %s: Matched against ourself and prefix length is not max bit length",
+//						__func__);
 				return 0;
-			}
+//			}
 
 		/* Pick up selected route. */
 		/* However, do not resolve over default route unless explicitly

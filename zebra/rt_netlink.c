@@ -191,6 +191,17 @@ static inline bool is_selfroute(int proto)
 	return false;
 }
 
+// Cradlepoint: FW-19990
+//     When zebra sends a netlink message to add a route into Linux kernel
+//     it used to send RTPROT_ZEBRA, so that we can distinguish routes from other application.
+//     FRR made changes to populate the information per routing protocol, which is not compatible
+//     with quagga.  All RTPROT_* defined in this distribution are not official Linux definition.
+static inline int zebra2proto(int proto)
+{
+	return RTPROT_ZEBRA;
+}
+
+#if 0
 static inline int zebra2proto(int proto)
 {
 	switch (proto) {
@@ -257,6 +268,7 @@ static inline int zebra2proto(int proto)
 
 	return proto;
 }
+#endif
 
 static inline int proto2zebra(int proto, int family, bool is_nexthop)
 {

@@ -73,6 +73,9 @@ static const struct option longopts[] = {
 	{"no_kernel", no_argument, NULL, 'n'},
 	{"skip_runas", no_argument, NULL, 'S'},
 	{"ecmp", required_argument, NULL, 'e'},
+/* Cradlepoint Opt */
+	{"csclient", required_argument, NULL, 'c'},
+/* End Cradlepoint Opt */
 	{"int_num", required_argument, NULL, 'I'},
 	{"no_zebra", no_argument, NULL, 'Z'},
 	{"socket_size", required_argument, NULL, 's'},
@@ -402,12 +405,15 @@ int main(int argc, char **argv)
 	int no_fib_flag = 0;
 	int no_zebra_flag = 0;
 	int skip_runas = 0;
+/* Cradlepoint */
+	char *csclient = NULL;
+/* End Cradlepoint */
 	int instance = 0;
 	int buffer_size = BGP_SOCKET_SNDBUF_SIZE;
 
 	frr_preinit(&bgpd_di, argc, argv);
 	frr_opt_add(
-		"p:l:SnZe:I:s:" DEPRECATED_OPTIONS, longopts,
+		"c:p:l:SnZe:I:s:" DEPRECATED_OPTIONS, longopts,
 		"  -p, --bgp_port     Set BGP listen port number (0 means do not listen).\n"
 		"  -l, --listenon     Listen on specified address (implies -n)\n"
 		"  -n, --no_kernel    Do not install route to kernel.\n"
@@ -415,7 +421,10 @@ int main(int argc, char **argv)
 		"  -S, --skip_runas   Skip capabilities checks, and changing user and group IDs.\n"
 		"  -e, --ecmp         Specify ECMP to use.\n"
 		"  -I, --int_num      Set instance number (label-manager)\n"
-		"  -s, --socket_size  Set BGP peer socket send buffer size\n");
+		"  -s, --socket_size  Set BGP peer socket send buffer size\n"
+/* Cradlepoint */
+		"  -c, --csclient     Destination path for csclient put\n");
+/* End Cradlepoint */
 
 	/* Command line argument treatment. */
 	while (1) {
@@ -469,6 +478,11 @@ int main(int argc, char **argv)
 		case 'S':
 			skip_runas = 1;
 			break;
+/* Cradlepoint */
+		case 'c':
+			csclient = optarg;
+			break;
+/* End Cradlepoint */
 		case 'I':
 			instance = atoi(optarg);
 			if (instance > (unsigned short)-1)
@@ -494,6 +508,9 @@ int main(int argc, char **argv)
 	bm->address = bgp_address;
 	if (no_fib_flag || no_zebra_flag)
 		bgp_option_set(BGP_OPT_NO_FIB);
+/* Cradlepoint */
+	bm->csclient = csclient;
+/* End Cradlepoint */
 	if (no_zebra_flag)
 		bgp_option_set(BGP_OPT_NO_ZEBRA);
 	bgp_error_init();

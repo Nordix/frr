@@ -295,8 +295,11 @@ void connected_add_ipv4(struct interface *ifp, int flags, struct in_addr *addr,
 	p = prefix_ipv4_new();
 	p->family = AF_INET;
 	p->prefix = *addr;
-	p->prefixlen = CHECK_FLAG(flags, ZEBRA_IFA_PEER) ? IPV4_MAX_PREFIXLEN
-							 : prefixlen;
+	// p->prefixlen = CHECK_FLAG(flags, ZEBRA_IFA_PEER) ? IPV4_MAX_PREFIXLEN
+	//							 : prefixlen;
+	// Cradlepoint: FW-19990:
+	// Revert to original quagga behaviour to respect prefixlen from kernel.
+	p->prefixlen = prefixlen;
 	ifc->address = (struct prefix *)p;
 
 	/* If there is a peer address. */

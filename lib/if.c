@@ -170,8 +170,10 @@ static struct interface *if_new(vrf_id_t vrf_id)
 	ifp->nbr_connected = list_new();
 	ifp->nbr_connected->del = (void (*)(void *))nbr_connected_free;
 
-	/* Enable Link-detection by default */
+	/* Cradlepoint - We rather not for now
+	Enable Link-detection by default
 	SET_FLAG(ifp->status, ZEBRA_INTERFACE_LINKDETECTION);
+	*/
 
 	QOBJ_REG(ifp, interface);
 	return ifp;

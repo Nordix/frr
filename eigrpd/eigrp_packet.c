@@ -1111,6 +1111,16 @@ static struct TLV_IPv4_Internal_type *eigrp_IPv4_InternalTLV_new(void)
 	return new;
 }
 
+static struct TLV_IPv4_External_type *eigrp_IPv4_ExternalTLV_new(void)
+{
+	struct TLV_IPv4_External_type *new;
+
+	new = XCALLOC(MTYPE_EIGRP_IPV4_INT_TLV,
+		      sizeof(struct TLV_IPv4_External_type));
+
+	return new;
+}
+
 struct TLV_IPv4_Internal_type *eigrp_read_ipv4_tlv(struct stream *s)
 {
 	struct TLV_IPv4_Internal_type *tlv;
@@ -1145,6 +1155,49 @@ struct TLV_IPv4_Internal_type *eigrp_read_ipv4_tlv(struct stream *s)
 	tlv->destination.s_addr = htonl(destination_tmp);
 
 	return tlv;
+}
+
+struct TLV_IPv4_External_type *eigrp_read_ipv4_ext_tlv(struct stream *s)
+{
+	struct TLV_IPv4_External_type *ext_tlv;
+	uint32_t destination_tmp;
+
+	ext_tlv = eigrp_IPv4_ExternalTLV_new();
+
+	ext_tlv->type = stream_getw(s);
+	ext_tlv->length = stream_getw(s);
+	ext_tlv->next_hop.s_addr = stream_getl(s);
+	ext_tlv->originating_router.s_addr = stream_getl(s);
+	ext_tlv->originating_as = stream_getl(s);
+	ext_tlv->administrative_tag = stream_getl(s);
+	ext_tlv->external_metric = stream_getl(s);
+	ext_tlv->reserved = stream_getw(s);
+	ext_tlv->external_protocol = stream_getc(s);
+	ext_tlv->external_flags = stream_getc(s);
+	ext_tlv->metric.delay = stream_getl(s);
+	ext_tlv->metric.bandwidth = stream_getl(s);
+	ext_tlv->metric.mtu[0] = stream_getc(s);
+	ext_tlv->metric.mtu[1] = stream_getc(s);
+	ext_tlv->metric.mtu[2] = stream_getc(s);
+	ext_tlv->metric.hop_count = stream_getc(s);
+	ext_tlv->metric.reliability = stream_getc(s);
+	ext_tlv->metric.load = stream_getc(s);
+	ext_tlv->metric.tag = stream_getc(s);
+	ext_tlv->metric.flags = stream_getc(s);
+
+	ext_tlv->prefix_length = stream_getc(s);
+
+	destination_tmp = stream_getc(s) << 24;
+	if (ext_tlv->prefix_length > 8)
+		destination_tmp |= stream_getc(s) << 16;
+	if (ext_tlv->prefix_length > 16)
+		destination_tmp |= stream_getc(s) << 8;
+	if (ext_tlv->prefix_length > 24)
+		destination_tmp |= stream_getc(s);
+
+	ext_tlv->destination.s_addr = htonl(destination_tmp);
+
+	return ext_tlv;
 }
 
 uint16_t eigrp_add_internalTLV_to_stream(struct stream *s,
@@ -1345,6 +1398,12 @@ void eigrp_IPv4_InternalTLV_free(
 	struct TLV_IPv4_Internal_type *IPv4_InternalTLV)
 {
 	XFREE(MTYPE_EIGRP_IPV4_INT_TLV, IPv4_InternalTLV);
+}
+
+void eigrp_IPv4_ExternalTLV_free(
+	struct TLV_IPv4_External_type *IPv4_ExternalTLV)
+{
+	XFREE(MTYPE_EIGRP_IPV4_INT_TLV, IPv4_ExternalTLV);
 }
 
 struct TLV_Sequence_Type *eigrp_SequenceTLV_new(void)

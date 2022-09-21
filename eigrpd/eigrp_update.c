@@ -174,6 +174,7 @@ void eigrp_update_receive(struct eigrp *eigrp, struct ip *iph,
 {
 	struct eigrp_neighbor *nbr;
 	struct TLV_IPv4_Internal_type *tlv;
+	struct TLV_IPv4_External_type *ext_tlv;
 	struct eigrp_prefix_entry *pe;
 	struct eigrp_nexthop_entry *ne;
 	uint32_t flags;
@@ -184,6 +185,7 @@ void eigrp_update_receive(struct eigrp *eigrp, struct ip *iph,
 	uint8_t graceful_restart;
 	uint8_t graceful_restart_final;
 	struct list *nbr_prefixes = NULL;
+	bool is_ext = false;
 
 	/* increment statistics. */
 	ei->update_in++;
@@ -296,15 +298,23 @@ void eigrp_update_receive(struct eigrp *eigrp, struct ip *iph,
 	while (s->endp > s->getp) {
 		type = stream_getw(s);
 		switch (type) {
+		case EIGRP_TLV_IPv4_EXT:
+			is_ext = true;
 		case EIGRP_TLV_IPv4_INT:
 			stream_set_getp(s, s->getp - sizeof(uint16_t));
 
-			tlv = eigrp_read_ipv4_tlv(s);
-
+			if (is_ext) {
+				ext_tlv = eigrp_read_ipv4_ext_tlv(s);
+				dest_addr.u.prefix4 = ext_tlv->destination;
+				dest_addr.prefixlen = ext_tlv->prefix_length;
+			}
+			else {
+				tlv = eigrp_read_ipv4_tlv(s);
+				dest_addr.u.prefix4 = tlv->destination;
+				dest_addr.prefixlen = tlv->prefix_length;
+			}
 			/*searching if destination exists */
 			dest_addr.family = AF_INET;
-			dest_addr.u.prefix4 = tlv->destination;
-			dest_addr.prefixlen = tlv->prefix_length;
 			struct eigrp_prefix_entry *dest =
 				eigrp_topology_table_lookup_ipv4(
 					eigrp->topology_table, &dest_addr);
@@ -324,9 +334,15 @@ void eigrp_update_receive(struct eigrp *eigrp, struct ip *iph,
 
 				msg.packet_type = EIGRP_OPC_UPDATE;
 				msg.eigrp = eigrp;
-				msg.data_type = EIGRP_INT;
+				if (is_ext) {
+				    msg.data_type = EIGRP_EXT;
+				    msg.metrics = ext_tlv->metric;
+				}
+				else {
+				    msg.data_type = EIGRP_INT;
+				    msg.metrics = tlv->metric;
+				}
 				msg.adv_router = nbr;
-				msg.metrics = tlv->metric;
 				msg.entry = entry;
 				msg.prefix = dest;
 				eigrp_fsm_event(&msg);
@@ -344,9 +360,16 @@ void eigrp_update_receive(struct eigrp *eigrp, struct ip *iph,
 				ne = eigrp_nexthop_entry_new();
 				ne->ei = ei;
 				ne->adv_router = nbr;
-				ne->reported_metric = tlv->metric;
-				ne->reported_distance = eigrp_calculate_metrics(
-					eigrp, tlv->metric);
+				if (is_ext) {
+					ne->reported_metric = ext_tlv->metric;
+					ne->reported_distance = eigrp_calculate_metrics(
+						eigrp, ext_tlv->metric);
+				}
+				else {
+					ne->reported_metric = tlv->metric;
+					ne->reported_distance = eigrp_calculate_metrics(
+						eigrp, tlv->metric);
+				}
 				/*
 				 * Filtering
 				 */
@@ -377,13 +400,11 @@ void eigrp_update_receive(struct eigrp *eigrp, struct ip *iph,
 					eigrp->topology_changes_internalIPV4,
 					pe);
 			}
-			eigrp_IPv4_InternalTLV_free(tlv);
+			if (is_ext)
+				eigrp_IPv4_ExternalTLV_free(ext_tlv);
+			else
+				eigrp_IPv4_InternalTLV_free(tlv);
 			break;
-
-		case EIGRP_TLV_IPv4_EXT:
-		/* DVS: processing of external routes needs packet and fsm work.
-		 *      for now, lets just not creash the box
-		 */
 		default:
 			length = stream_getw(s);
 			// -2 for type, -2 for len

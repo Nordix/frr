@@ -517,6 +517,7 @@ void eigrp_topology_neighbor_down(struct eigrp *eigrp,
 			msg.entry = entry;
 			msg.prefix = pe;
 			eigrp_fsm_event(&msg);
+			eigrp_prefix_entry_delete(eigrp, eigrp->topology_table, pe);
 		}
 	}
 

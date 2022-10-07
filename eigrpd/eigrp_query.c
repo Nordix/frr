@@ -137,6 +137,7 @@ void eigrp_query_receive(struct eigrp *eigrp, struct ip *iph,
 				msg.entry = entry;
 				msg.prefix = dest;
 				eigrp_fsm_event(&msg);
+				eigrp_prefix_entry_delete(eigrp, eigrp->topology_table, dest);
 			}
 			eigrp_IPv4_InternalTLV_free(tlv);
 			break;
